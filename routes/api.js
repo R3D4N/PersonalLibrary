@@ -15,8 +15,8 @@ module.exports = function (app) {
       //response will be array of book objects
       //json res format: [{"_id": bookid, "title": book_title, "commentcount": num_of_comments },...]
       Book.find({}, (err, booksData)=>{
-        if(err) return res.json({error: err})
-        if(!booksData) return res.json({msj: 'no books in data base'})
+        if(err) return res.status(404).json({error: err})
+        if(!booksData) return res.status(404).json({msj: 'no books in data base'})
         let bookJSON =[]
         booksData.forEach(book => {
           bookJSON.push({
@@ -25,17 +25,17 @@ module.exports = function (app) {
             'commentcount': book.comments.length
           })
         })
-        res.json(bookJSON)
+        res.status(200).json(bookJSON)
       })
     })
     
     .post(function (req, res){
       let title = req.body.title;
       //response will contain new book object including atleast _id and title
-      if(!title) return res.json({msj: 'missing required field title'})
+      if(!title) return res.status(404).send('missing required field title')
       Book.create({title}, (err, bookData)=>{
-        if(err) return res.json({error: err})
-        res.json(bookData)
+        if(err) return res.status(404).json({error: err})
+        res.status(200).json({title: bookData.title, _id: bookData._id})
       })
     })
     
@@ -43,9 +43,9 @@ module.exports = function (app) {
       //if successful response will be 'complete delete successful'
       Book.deleteMany({}, (err, d)=>{
         if(err || d.deletedCount == 0){
-          res.json({error: 'no book exists'})
+          return res.status(404).json({error: 'no book exists'})
         }
-        res.json({msj: 'complete delete successful'})
+        res.status(200).send('complete delete successful')
       })
     });
 
@@ -55,10 +55,9 @@ module.exports = function (app) {
     .get(function (req, res){
       let bookid = req.params.id;
       //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
-      Book.findOne({_id: bookid}, {'-__v': 0}, (err, bookData)=>{
-        if(err) return res.json({error: err});
-        if(!bookData) return res.json({msj: 'no book exists'});
-        res.json(bookData)
+      Book.findOne({_id: bookid}, {'__v': 0}, (err, bookData)=>{
+        if(err || !bookData) return res.status(404).json({msj: 'no book exists'});
+        res.status(200).json(bookData)
       })
     })
     
@@ -66,14 +65,13 @@ module.exports = function (app) {
       let bookid = req.params.id;
       let comment = req.body.comment;
       //json res format same as .get
-      if(!comment) return res.json({msj: 'missing required field comment'})
-      Book.findById(bookid, {'-__v': 0}, (err, bookData)=>{
-        if(err) return res.json({error: err})
-        if(!bookData) return res.json({msj: 'no book exists'})
+      if(!comment) return res.status(404).json({msj: 'missing required field comment'})
+      Book.findById(bookid, {'__v': 0}, (err, bookData)=>{
+        if(err || !bookData) return res.status(404).json({msj: 'no book exists'})
         bookData.comments.push(comment)
         bookData.save((err, data)=>{
-          if(err) return res.json({error: err})
-          res.json(data)
+          if(err) return res.status(404).json({error: err})
+          res.status(200).json(data)
         })
       })
     })
@@ -81,11 +79,11 @@ module.exports = function (app) {
     .delete(function(req, res){
       let bookid = req.params.id;
       //if successful response will be 'delete successful'
-      Book.findOneAndDelete({_id: bookid}, (err, d)=>{
+      Book.deleteOne({_id: bookid}, (err, d)=>{
         if(err || d.deletedCount == 0){
-          res.json({error: 'no book exists'})
+          return res.status(404).send('no book exists')
         }
-        res.json({msj: 'delete successful'})
+        res.status(200).send('delete successful')
       })
     });
   
