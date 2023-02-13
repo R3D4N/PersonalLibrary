@@ -41,6 +41,12 @@ module.exports = function (app) {
     
     .delete(function(req, res){
       //if successful response will be 'complete delete successful'
+      Book.deleteMany({}, (err, d)=>{
+        if(err || d.deletedCount == 0){
+          res.json({error: 'no book exists'})
+        }
+        res.json({msj: 'complete delete successful'})
+      })
     });
 
 
@@ -49,17 +55,38 @@ module.exports = function (app) {
     .get(function (req, res){
       let bookid = req.params.id;
       //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
+      Book.findOne({_id: bookid}, {'-__v': 0}, (err, bookData)=>{
+        if(err) return res.json({error: err});
+        if(!bookData) return res.json({msj: 'no book exists'});
+        res.json(bookData)
+      })
     })
     
     .post(function(req, res){
       let bookid = req.params.id;
       let comment = req.body.comment;
       //json res format same as .get
+      if(!comment) return res.json({msj: 'missing required field comment'})
+      Book.findById(bookid, {'-__v': 0}, (err, bookData)=>{
+        if(err) return res.json({error: err})
+        if(!bookData) return res.json({msj: 'no book exists'})
+        bookData.comments.push(comment)
+        bookData.save((err, data)=>{
+          if(err) return res.json({error: err})
+          res.json(data)
+        })
+      })
     })
     
     .delete(function(req, res){
       let bookid = req.params.id;
       //if successful response will be 'delete successful'
+      Book.findOneAndDelete({_id: bookid}, (err, d)=>{
+        if(err || d.deletedCount == 0){
+          res.json({error: 'no book exists'})
+        }
+        res.json({msj: 'delete successful'})
+      })
     });
   
 };
